@@ -14,7 +14,7 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.HashMap;
 
-@SpringBootApplication(scanBasePackages = {"com.aqr.mds.core"})
+@SpringBootApplication(scanBasePackages = {"com.mds.core"})
 public class MainController {
 
     private static HashMap<String, TopLevelnstrument> topLevelInstrumentMap = new HashMap();
