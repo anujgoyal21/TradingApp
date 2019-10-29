@@ -8,7 +8,7 @@ public class OrderBook
     private String symbol;
     private String side;
     private double limitPrice;
-    
+
     public String getType() {
         return type;
     }
