@@ -1,93 +1,110 @@
 package com.mds.core.core;
 
-import com.mds.core.MainController;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class OrderDepthStore {
 
-    private static final Logger log = LoggerFactory.getLogger(OrderDepthStore.class);
+    private HashMap<String, List<TreeMap<PriceDepthKey, PriceDepthData>>> symbolMap = new HashMap<>();
+    private static int BID_INDEX = 0;
+    private static int ASK_INDEX = 1;
+    private static int LEVEL_ALLOWED_5 = 5;
 
-    private HashMap <String, List<PriceDepthData>> symbolMap = new HashMap();
-    private ArrayList<OrderBook> orderBookArrayList;
-    private Comparator<PriceDepthKey> PriceDepthKeyComparator = new PriceDepthKey("",true, (0));
-    private TreeMap<PriceDepthKey, PriceDepthData> bidPriceDepth = new TreeMap<PriceDepthKey, PriceDepthData>(PriceDepthKeyComparator);
-    private TreeMap<PriceDepthKey, PriceDepthData> askPriceDepth = new TreeMap<PriceDepthKey, PriceDepthData>(PriceDepthKeyComparator);
+    /**
+     * This method insert/amend/cancel order from the cache which internally sorts it into
+     * 2 Maps containing bid and price data
+     *
+     * @param orderBook
+     */
+    public void processOrder(OrderBook orderBook) {
 
+        List<TreeMap<PriceDepthKey, PriceDepthData>> symbolBidAskList = symbolMap.get(orderBook.getSymbol());
 
-    public void setOrderBookArrayList(ArrayList<OrderBook> orderBookArrayList) {
-        processOrders(orderBookArrayList);
-    }
-
-    private void processOrders(ArrayList<OrderBook> orderBookArrayList) {
-        for (OrderBook orderBook : orderBookArrayList) {
-            if ("NEW_ORDER".equalsIgnoreCase(orderBook.getType())) {
-                addOrder(orderBook);
-            } else if ("AMEND_ORDER".equalsIgnoreCase(orderBook.getType())) {
-                amendOrder(orderBook);
-            } else {
-                deleteOrder(orderBook);
-            }
-        }
-    }
-
-    public void processOrders(OrderBook orderBook) {
-        if ("NEW_ORDER".equalsIgnoreCase(orderBook.getType())) {
-            addOrder(orderBook);
-        } else if ("AMEND_ORDER".equalsIgnoreCase(orderBook.getType())) {
-            amendOrder(orderBook);
-        } else {
-            deleteOrder(orderBook);
+        if (symbolBidAskList == null) {
+            symbolBidAskList = new ArrayList<>();
+            Comparator<PriceDepthKey> PriceDepthKeyComparator = new PriceDepthKey("", true, (0));
+            TreeMap<PriceDepthKey, PriceDepthData> bidPriceDepth = new TreeMap<PriceDepthKey, PriceDepthData>(PriceDepthKeyComparator);
+            TreeMap<PriceDepthKey, PriceDepthData> askPriceDepth = new TreeMap<PriceDepthKey, PriceDepthData>(PriceDepthKeyComparator);
+            symbolBidAskList.add(BID_INDEX, bidPriceDepth);
+            symbolBidAskList.add(ASK_INDEX, askPriceDepth);
         }
 
-    }
+        PriceDepthKey priceDepthKey = getPriceDepthKey(orderBook.getSymbol(), orderBook.getSide(),
+                orderBook.getLimitPrice());
 
-    private void addOrder(OrderBook orderBook) {
+        PriceDepthData priceDepthData;
 
-        PriceDepthKey priceDepthKey = getPriceDepthKey(orderBook.getSymbol(), orderBook.getSide(), orderBook.getLimitPrice());
-        PriceDepthData priceDepthData = null;
-        if (isBid(orderBook.getSide())) {
-            priceDepthData = bidPriceDepth.get(priceDepthKey);
-            if (priceDepthData == null) {
-                priceDepthData = new PriceDepthData(priceDepthKey);
-                bidPriceDepth.put(priceDepthKey, priceDepthData);
-            }
-        } else {
-            priceDepthData = askPriceDepth.get(priceDepthKey);
-            if (priceDepthData == null) {
-                priceDepthData = new PriceDepthData(priceDepthKey);
-                askPriceDepth.put(priceDepthKey, priceDepthData);
-            }
+        int directionIndex = isBid(orderBook.getSide())?BID_INDEX:ASK_INDEX;
+        priceDepthData = (symbolBidAskList.get(directionIndex)).get(priceDepthKey);
+
+        if (priceDepthData == null) {
+            priceDepthData = new PriceDepthData(priceDepthKey);
+
+            priceDepthData.setSymbol(orderBook.getSymbol());
+          }
+
+        if("NEW".equalsIgnoreCase(orderBook.getType())){
+            priceDepthData.setQuantity(priceDepthData.getQuantity() + orderBook.getQuantity());
+            priceDepthData.setNumOfOrders(priceDepthData.numOfOrders + 1);
         }
-        priceDepthData.setQuantity(priceDepthData.getQuantity() + orderBook.getQuantity());
-        priceDepthData.setNumOfOrders(priceDepthData.numOfOrders + 1);
-        priceDepthData.setSymbol(orderBook.getSymbol());
+        else{
+            priceDepthData.setQuantity("AMEND".equalsIgnoreCase(orderBook.getType()) ? orderBook.getQuantity()
+                    : priceDepthData.getQuantity() - orderBook.getQuantity());
+        }
 
-
+        symbolBidAskList.get(directionIndex).put(priceDepthKey, priceDepthData);
+        symbolMap.putIfAbsent(orderBook.getSymbol(), symbolBidAskList);
     }
 
+    /**
+     * This method is utility method to retrieve order depth by passing symbol
+     * Only Depth up to 5 levels is supported which is kept configurable
+     * @param symbol
+     * @return
+     */
+    public List<MarketDepth> getMarketDataOrderDepth(String symbol){
+        List<TreeMap<PriceDepthKey, PriceDepthData> > symbolTreeList = symbolMap.get(symbol);
 
-    public void getResult(){
-        bidPriceDepth.keySet().stream().forEach(
-                x -> System.out.println(x)
-        )   ;
+        if(symbolTreeList !=null && symbolTreeList.size()>0){
+            TreeMap<PriceDepthKey, PriceDepthData> bidPriceDepth = symbolTreeList.get(BID_INDEX);
+            TreeMap<PriceDepthKey, PriceDepthData> askPriceDepth = symbolTreeList.get(ASK_INDEX);
+
+            int bidDepthSize = Math.min(bidPriceDepth.size(), LEVEL_ALLOWED_5);
+            int askDepthSize = Math.min(askPriceDepth.size(), LEVEL_ALLOWED_5);
+
+            Map<Integer, MarketDepth> marketDepthMap = new HashMap<>(Math.max(bidDepthSize, askDepthSize));
+
+            Iterator<PriceDepthData> iterBidData = bidPriceDepth.values().iterator();
+            int levelBid = 0;
+            while (iterBidData.hasNext() && levelBid < bidDepthSize){
+                MarketDepth marketDepth = new MarketDepth();
+                PriceDepthData priceDepthData = iterBidData.next();
+                marketDepth.setBidPrice(priceDepthData.getPrice());
+                marketDepth.setBidSize(priceDepthData.getQuantity());
+                marketDepthMap.put(levelBid, marketDepth);
+                levelBid++;
+            }
+
+            Iterator<PriceDepthData> iterAskData = askPriceDepth.values().iterator();
+            int levelAsk = 0;
+            while (iterAskData.hasNext() && levelAsk < askDepthSize){
+                MarketDepth marketDepth = marketDepthMap.get(levelAsk);
+                if(marketDepth == null){
+                    marketDepth = new MarketDepth();
+                }
+                PriceDepthData priceDepthData = iterAskData.next();
+                marketDepth.setOfferPrice(priceDepthData.getPrice());
+                marketDepth.setOfferSize(priceDepthData.getQuantity());
+                marketDepthMap.put(levelAsk, marketDepth);
+                levelAsk++;
+            }
+            return marketDepthMap.values().stream().collect(Collectors.toList());
+        }
+        return Collections.EMPTY_LIST;
     }
 
-    private void amendOrder(OrderBook orderBook) {
-
-    }
-
-    private void deleteOrder(OrderBook orderBook) {
-
-    }
-
-    private PriceDepthKey getPriceDepthKey( String symbol, String side, double price) {
-        return new PriceDepthKey( symbol, isBid(side), price);
+    private PriceDepthKey getPriceDepthKey(String symbol, String side, double price) {
+        return new PriceDepthKey(symbol, isBid(side), price);
     }
 
     private boolean isBid(String side) {

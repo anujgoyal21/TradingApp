@@ -18,6 +18,10 @@ public class PriceDepthData {
         this.quantity = quantity;
     }
 
+    public double getPrice() {
+        return priceDepthKey.getPrice();
+    }
+
     public int getNumOfOrders() {
         return numOfOrders;
     }

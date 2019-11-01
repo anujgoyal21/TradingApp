@@ -43,6 +43,9 @@ public class PriceDepthKey implements Comparator<PriceDepthKey> {
     @Override
     public int compare(PriceDepthKey o1, PriceDepthKey o2) {
 
+        if (!o1.symbol.equalsIgnoreCase(o2.symbol)) {
+            return -1;
+        }
 
         if (o1.isBid()) {
             if (o1.getPrice() < (o2.getPrice())) {
@@ -63,7 +66,7 @@ public class PriceDepthKey implements Comparator<PriceDepthKey> {
         }
     }
 
-    /*@Override
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -73,9 +76,5 @@ public class PriceDepthKey implements Comparator<PriceDepthKey> {
                 symbol.equals(that.symbol);
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(isBid, price, symbol);
-    }*/
 
 }
