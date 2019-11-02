@@ -1,6 +1,7 @@
 package com.mds.core;
 
 import com.mds.core.core.OrderBook;
+import com.mds.core.core.OrderDepthStore;
 import com.mds.core.core.TopLevelnstrument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,6 +64,7 @@ public class MainController {
      */
     static void loadOrderBookExchange() throws IOException{
         URL orderBookURL = MainController.class.getClassLoader().getResource("order_book_exchanges.csv");
+        OrderDepthStore orderDepthStore = new OrderDepthStore();
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(orderBookURL.openStream()))) {
             reader.lines().skip(1).forEach(
@@ -81,19 +83,7 @@ public class MainController {
                             orderBook.setLimitPrice(StringUtils.isEmpty(data[pos]) ? 0 :
                                     Double.parseDouble(data[pos++]));
                         }
-
-                        if (orderBookMap.containsKey(orderBook.getOrder_id())) {
-                            if ("CANCEL_ORDER".equalsIgnoreCase(orderBook.getType())) {
-                                orderBookMap.remove(orderBook.getOrder_id());
-                            } else { //amend
-                                OrderBook newOrderBook = orderBookMap.get(orderBook.getOrder_id());
-                                newOrderBook.setQuantity(orderBook.getQuantity());
-                                orderBookMap.put(newOrderBook.getOrder_id(), newOrderBook);
-                            }
-
-                        } else {
-                            orderBookMap.put(orderBook.getOrder_id(), orderBook);
-                        }
+                        orderDepthStore.processOrder(orderBook);
                     }
             );
         }

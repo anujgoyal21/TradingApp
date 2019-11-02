@@ -5,6 +5,7 @@ import com.mds.core.core.OrderDepthStore;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.*;
 import java.util.Random;
 
 public class OrderDepthStoreTest {
@@ -69,22 +70,103 @@ public class OrderDepthStoreTest {
         );
     }
 
-    private void generateNewOrdersAndAddToStore(OrderDepthStore orderDepthStore, int numberOfOrders, String side,
+    @Test
+    public void testMarketDepthMultipleOrdersWithSamePriceAndAmendPriceQuantity() {
+        OrderDepthStore orderDepthStore = new OrderDepthStore();
+        ArrayList<OrderBook> orderList =
+                generateNewOrdersAndAddToStore(orderDepthStore, 3, "SELL", false);
+        orderDepthStore.getMarketDataOrderDepth("TCS").stream().forEach(
+                marketDepth -> {
+                    Assert.assertEquals(3000, marketDepth.getOfferSize(), 1);
+                }
+        );
+
+        orderList.forEach(orderBook ->
+        {
+            orderBook.setQuantity(2000);
+            orderBook.setType("AMEND");
+            orderDepthStore.processOrder(orderBook);
+        });
+
+        orderDepthStore.getMarketDataOrderDepth("TCS").stream().forEach(
+                marketDepth -> {
+                    Assert.assertEquals(6000, marketDepth.getOfferSize(), 1);
+                }
+        );
+    }
+
+    @Test
+    public void testMarketDepthMultipleOrdersWithSamePriceAndCancelQuantity() {
+        OrderDepthStore orderDepthStore = new OrderDepthStore();
+        ArrayList<OrderBook> orderList =
+                generateNewOrdersAndAddToStore(orderDepthStore, 3, "SELL", false);
+        orderDepthStore.getMarketDataOrderDepth("TCS").stream().forEach(
+                marketDepth -> {
+                    Assert.assertEquals(3000, marketDepth.getOfferSize(), 1);
+                }
+        );
+
+        orderList.forEach(orderBook ->
+        {
+            orderBook.setType("CANCEL");
+            orderDepthStore.processOrder(orderBook);
+        });
+
+        orderDepthStore.getMarketDataOrderDepth("TCS").stream().forEach(
+                marketDepth -> {
+                    Assert.assertEquals(0, marketDepth.getOfferSize(), 1);
+                }
+        );
+
+        generateNewOrdersAndAddToStore(orderDepthStore, 3, "SELL", false);
+        OrderBook orderBook1 = getNewOrder(1);
+        orderBook1.setSide("SELL");
+        orderBook1.setType("CANCEL");
+        orderDepthStore.processOrder(orderBook1);
+
+        orderDepthStore.getMarketDataOrderDepth("TCS").stream().forEach(
+                marketDepth -> {
+                    Assert.assertEquals(2000, marketDepth.getOfferSize(), 1);
+                }
+        );
+    }
+
+    @Test
+    public void testMarketDepthMultipleOrdersAndCancelOneOrderQuantity() {
+        OrderDepthStore orderDepthStore = new OrderDepthStore();
+
+        generateNewOrdersAndAddToStore(orderDepthStore, 3, "SELL", false);
+        OrderBook orderBook1 = getNewOrder(1);
+        orderBook1.setSide("SELL");
+        orderBook1.setType("CANCEL");
+        orderDepthStore.processOrder(orderBook1);
+
+        orderDepthStore.getMarketDataOrderDepth("TCS").stream().forEach(
+                marketDepth -> {
+                    Assert.assertEquals(2000, marketDepth.getOfferSize(), 1);
+                }
+        );
+    }
+
+    private ArrayList<OrderBook> generateNewOrdersAndAddToStore(OrderDepthStore orderDepthStore, int numberOfOrders, String side,
                                                 boolean randomPrice) {
         Random random = new Random();
+        ArrayList orderList = new ArrayList<OrderBook>();
         for (int i = 0; i < numberOfOrders; i++) {
-            OrderBook orderBook = getNewOrder();
+            OrderBook orderBook = getNewOrder(i);
             orderBook.setSide(side);
             orderBook.setLimitPrice(randomPrice ? random.nextInt(10000) : orderBook.getLimitPrice());
             orderDepthStore.processOrder(orderBook);
+            orderList.add(orderBook);
         }
+        return orderList;
     }
 
-    private OrderBook getNewOrder() {
+    private OrderBook getNewOrder(int orderNumber) {
         OrderBook order1 = new OrderBook();
         order1.setType("NEW");
         order1.setLimitPrice(100);
-        order1.setOrder_id("ORDER1");
+        order1.setOrder_id("ORDER "+orderNumber);
         order1.setQuantity(1000);
         order1.setSide("BUY");
         order1.setSymbol("TCS");
