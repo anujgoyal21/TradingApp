@@ -3,6 +3,12 @@ market data service
 
 Refer to test class - OrderDepthStoreTest for understanding the code structure.
 
+OrderDepthStore is the code handling logic for building up the order book and aggregating books based on same price.
+
+It provides method to the clients to fetch the data efficiently and quickly with O(n) efficiency.
+
+Spring Boot application has been built to show cases how file upload can be used for building such a case.
+
 Objective: build and serve consolidated market book for all US equities
 
 Description:
