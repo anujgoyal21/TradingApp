@@ -1,4 +1,4 @@
-package com.mds.core.core;
+package com.mds.core;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -15,6 +15,13 @@ public class OrderDepthStore {
      * and adjusting the same.
      */
     private HashMap<String, Double> orderQtyMap = new HashMap<>();
+
+    /**
+     * This map stores all symbols so as to provide efficient calls to the client
+     * This stores for topDepthOfAllExchanges.
+     */
+    private HashMap<String, TreeMap<MarketDepth, MarketDepth>> topOfExchangeDepth = new HashMap<>();
+
     private static int BID_INDEX = 0;
     private static int ASK_INDEX = 1;
     private static int LEVEL_ALLOWED_5 = 5;
@@ -116,6 +123,46 @@ public class OrderDepthStore {
             return marketDepthMap.values().stream().collect(Collectors.toList());
         }
         return Collections.EMPTY_LIST;
+    }
+
+    /**
+     * This method process new market depth from different exchanges and collate similar bid and ask together.
+     *
+     * @param marketDepth
+     */
+    public void processTopOfExchangeDepth(MarketDepth marketDepth) {
+        TreeMap<MarketDepth, MarketDepth> treeMap = topOfExchangeDepth.get(marketDepth.getSymbol());
+
+        if (treeMap == null) {
+            Comparator<MarketDepth> depthKeyComparator = new MarketDepth("", 0, 0, 0, 0);
+            treeMap = new TreeMap<>(depthKeyComparator);
+        }
+
+        MarketDepth existingDepth = treeMap.get(marketDepth);
+        if (existingDepth == null) {
+            treeMap.put(marketDepth, marketDepth);
+        } else {
+            marketDepth.setOfferSize(existingDepth.getOfferSize() + marketDepth.getOfferSize());
+            marketDepth.setBidSize(existingDepth.getBidSize() + marketDepth.getBidSize());
+            treeMap.put(marketDepth, marketDepth);
+        }
+
+        topOfExchangeDepth.put(marketDepth.getSymbol(), treeMap);
+    }
+
+    /**
+     * Returns best bid and ask for a symbol from different exchanges.
+     *
+     * @param symbol
+     * @return
+     */
+    public MarketDepth getTopOfMarketDepth(String symbol) {
+        if (topOfExchangeDepth.get(symbol) != null) {
+            MarketDepth marketDepth = topOfExchangeDepth.get(symbol).firstKey();
+            return topOfExchangeDepth.get(symbol).get(marketDepth);
+        }
+
+        return new MarketDepth();
     }
 
     private PriceDepthKey getPriceDepthKey(String symbol, String side, double price) {

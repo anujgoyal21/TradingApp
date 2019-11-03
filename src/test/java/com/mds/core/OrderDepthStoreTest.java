@@ -1,7 +1,5 @@
 package com.mds.core;
 
-import com.mds.core.core.OrderBook;
-import com.mds.core.core.OrderDepthStore;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -171,6 +169,44 @@ public class OrderDepthStoreTest {
         order1.setSide("BUY");
         order1.setSymbol("TCS");
         return order1;
+    }
+
+    @Test
+    public void testGetTopOfExchangeDepthForTwoMarketDepth() {
+        OrderDepthStore orderDepthStore = new OrderDepthStore();
+        generateTopOfExchangeDepthAndAddToStore(orderDepthStore);
+        MarketDepth marketDepth = orderDepthStore.getTopOfMarketDepth("TCS");
+        Assert.assertEquals(1200, marketDepth.getBidPrice(), 1);
+        Assert.assertEquals(900, marketDepth.getOfferPrice(), 1);
+        Assert.assertEquals(4000, marketDepth.getOfferSize(), 1);
+        Assert.assertEquals(2000, marketDepth.getBidSize(), 1);
+    }
+
+    public void generateTopOfExchangeDepthAndAddToStore(OrderDepthStore exchangeDepthStore){
+
+        MarketDepth marketDepth = new MarketDepth();
+        marketDepth.setSymbol("TCS");
+        marketDepth.setBidSize(1000);
+        marketDepth.setBidPrice(1100);
+        marketDepth.setOfferSize(2000);
+        marketDepth.setOfferPrice(1000);
+        exchangeDepthStore.processTopOfExchangeDepth(marketDepth);
+
+        marketDepth = new MarketDepth();
+        marketDepth.setSymbol("TCS");
+        marketDepth.setBidSize(1000);
+        marketDepth.setBidPrice(1200);
+        marketDepth.setOfferSize(2000);
+        marketDepth.setOfferPrice(900);
+        exchangeDepthStore.processTopOfExchangeDepth(marketDepth);
+
+        marketDepth = new MarketDepth();
+        marketDepth.setSymbol("TCS");
+        marketDepth.setBidSize(1000);
+        marketDepth.setBidPrice(1200);
+        marketDepth.setOfferSize(2000);
+        marketDepth.setOfferPrice(900);
+        exchangeDepthStore.processTopOfExchangeDepth(marketDepth);
     }
 }
 

@@ -1,4 +1,4 @@
-package com.mds.core.core;
+package com.mds.core;
 
 public class PriceDepthData {
     String symbol;

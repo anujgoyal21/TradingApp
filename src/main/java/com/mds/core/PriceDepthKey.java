@@ -1,8 +1,6 @@
-package com.mds.core.core;
+package com.mds.core;
 
-import java.math.BigDecimal;
 import java.util.Comparator;
-import java.util.Objects;
 
 public class PriceDepthKey implements Comparator<PriceDepthKey> {
     @Override
