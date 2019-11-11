@@ -5,22 +5,29 @@ import java.util.stream.Collectors;
 
 public class OrderDepthStore {
 
+    private static final OrderDepthStore orderDepthStore = new OrderDepthStore();
+
+    public static OrderDepthStore getInstance(){
+        return orderDepthStore;
+    }
+
     /**
      * This map stores all symbols so as to provide efficient calls to the client
      * This stores bids and asks in the sorted way.
      */
     private HashMap<String, List<TreeMap<PriceDepthKey, PriceDepthData>>> symbolMap = new HashMap<>();
-    /**
-     * This map stores reference of original order id and qty for handling amendment and cancellation
-     * and adjusting the same.
-     */
-    private HashMap<String, Double> orderQtyMap = new HashMap<>();
 
     /**
      * This map stores all symbols so as to provide efficient calls to the client
      * This stores for topDepthOfAllExchanges.
      */
     private HashMap<String, TreeMap<MarketDepth, MarketDepth>> topOfExchangeDepth = new HashMap<>();
+
+    /**
+     * This map stores reference of original order id and qty for handling amendment and cancellation
+     * and adjusting the same.
+     */
+    private HashMap<String, OrderBook> orderBookMap = new HashMap<>();
 
     private static int BID_INDEX = 0;
     private static int ASK_INDEX = 1;
@@ -62,14 +69,14 @@ public class OrderDepthStore {
         if ("NEW".equalsIgnoreCase(orderBook.getType())) {
             priceDepthData.setQuantity(priceDepthData.getQuantity() + orderBook.getQuantity());
             priceDepthData.setNumOfOrders(priceDepthData.numOfOrders + 1);
-            orderQtyMap.put(orderBook.getOrder_id(), orderBook.getQuantity());
+            orderBookMap.putIfAbsent(orderBook.getOrder_id(), orderBook.clone());
         } else if ("AMEND".equalsIgnoreCase(orderBook.getType())) {
-            priceDepthData.setQuantity(priceDepthData.getQuantity() - orderQtyMap.get(orderBook.getOrder_id()) +
+            priceDepthData.setQuantity(priceDepthData.getQuantity() - orderBookMap.get(orderBook.getOrder_id()).getQuantity() +
                     orderBook.getQuantity());
-            orderQtyMap.put(orderBook.getOrder_id(), orderBook.getQuantity());
+            orderBookMap.put(orderBook.getOrder_id(), orderBook.clone());
         } else {
-            priceDepthData.setQuantity(priceDepthData.getQuantity() - orderQtyMap.get(orderBook.getOrder_id()));
-            orderQtyMap.remove(orderBook.getOrder_id());
+            priceDepthData.setQuantity(priceDepthData.getQuantity() - orderBookMap.get(orderBook.getOrder_id()).getQuantity());
+            orderBookMap.remove(orderBook.getOrder_id());
         }
 
         symbolBidAskList.get(directionIndex).put(priceDepthKey, priceDepthData);
@@ -167,6 +174,10 @@ public class OrderDepthStore {
 
     private PriceDepthKey getPriceDepthKey(String symbol, String side, double price) {
         return new PriceDepthKey(symbol, isBid(side), price);
+    }
+
+    public Collection<OrderBook> getOrderBooks() {
+        return orderBookMap.values();
     }
 
     private boolean isBid(String side) {

@@ -1,6 +1,6 @@
 package com.mds.core;
 
-public class OrderBook
+public class OrderBook implements Cloneable
 {
     private String type;
     private String order_id;
@@ -55,6 +55,16 @@ public class OrderBook
 
     public void setLimitPrice(double limitPrice) {
         this.limitPrice = limitPrice;
+    }
+
+    @Override
+    public OrderBook clone(){
+        try {
+            return (OrderBook) super.clone();
+        }catch (CloneNotSupportedException ex){
+            throw new AssertionError();
+        }
+
     }
 
 
