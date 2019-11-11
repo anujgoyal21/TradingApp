@@ -1,4 +1,7 @@
-# mds
+#TradingApp
+
+Trading app consists of multiple modules which are required for building any low latency system
+
 market data service
 
 Refer to test class - OrderDepthStoreTest for understanding the code structure.
