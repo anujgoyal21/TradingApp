@@ -186,3 +186,133 @@ public class OrderDepthStore {
 
 }
 
+class PriceDepthData {
+    String symbol;
+    double quantity;
+    int numOfOrders;
+    PriceDepthKey priceDepthKey;
+
+    PriceDepthData(PriceDepthKey priceDepthKey){
+        this.priceDepthKey = priceDepthKey;
+    }
+
+    public double getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(double quantity) {
+        this.quantity = quantity;
+    }
+
+    public double getPrice() {
+        return priceDepthKey.getPrice();
+    }
+
+    public int getNumOfOrders() {
+        return numOfOrders;
+    }
+
+    public void setNumOfOrders(int numOfOrders) {
+        this.numOfOrders = numOfOrders;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
+    }
+
+    public PriceDepthKey getPriceDepthKey() {
+        return priceDepthKey;
+    }
+
+    public void setPriceDepthKey(PriceDepthKey priceDepthKey) {
+        this.priceDepthKey = priceDepthKey;
+    }
+
+    @Override
+    public String toString() {
+        return "PriceDepthData{" +
+                "symbol='" + symbol + '\'' +
+                ", quantity=" + quantity +
+                ", numOfOrders=" + numOfOrders +
+                ", priceDepthKey=" + priceDepthKey +
+                '}';
+    }
+
+}
+
+class PriceDepthKey implements Comparator<PriceDepthKey> {
+    @Override
+    public String toString() {
+        return "PriceDepthKey{" +
+                "isBid=" + isBid +
+                ", price=" + price +
+                ", symbol='" + symbol + '\'' +
+                '}';
+    }
+
+    boolean isBid;
+    double price;
+    String symbol;
+
+    PriceDepthKey(String symbol, boolean isBid, double price) {
+        this.symbol = symbol;
+        this.isBid = isBid;
+        this.price = price;
+    }
+
+    public boolean isBid() {
+        return isBid;
+    }
+
+    public void setBid(boolean bid) {
+        isBid = bid;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+
+    public void setPrice(double price) {
+        this.price = price;
+    }
+
+    @Override
+    public int compare(PriceDepthKey o1, PriceDepthKey o2) {
+
+        if (!o1.symbol.equalsIgnoreCase(o2.symbol)) {
+            return -1;
+        }
+
+        if (o1.isBid()) {
+            if (o1.getPrice() < (o2.getPrice())) {
+                return 1;
+            } else if (o1.getPrice() == (o2.getPrice())) {
+                return 0;
+            } else {
+                return -1;
+            }
+        } else {
+            if (o1.getPrice() < (o2.getPrice())) {
+                return -1;
+            } else if (o1.getPrice() == (o2.getPrice())) {
+                return 0;
+            } else {
+                return 1;
+            }
+        }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PriceDepthKey that = (PriceDepthKey) o;
+        return isBid == that.isBid &&
+                Double.compare(that.price, price) == 0 &&
+                symbol.equals(that.symbol);
+    }
+}

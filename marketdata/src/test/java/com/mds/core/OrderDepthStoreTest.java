@@ -31,7 +31,7 @@ public class OrderDepthStoreTest {
         generateNewOrdersAndAddToStore(orderDepthStore, 10, "SELL", true);
         orderDepthStore.getMarketDataOrderDepth("TCS").stream().forEach(
                 marketDepth -> {
-                    Assert.assertTrue( marketDepth.getBidPrice() > marketDepth.getOfferPrice());
+                     Assert.assertTrue( marketDepth.getBidPrice() >= marketDepth.getOfferPrice());
                 }
         );
 
@@ -153,7 +153,9 @@ public class OrderDepthStoreTest {
         for (int i = 0; i < numberOfOrders; i++) {
             OrderBook orderBook = getNewOrder(i);
             orderBook.setSide(side);
-            orderBook.setLimitPrice(randomPrice ? random.nextInt(10000) : orderBook.getLimitPrice());
+            orderBook.setLimitPrice(randomPrice ? (
+                    side.equalsIgnoreCase("BUY")?random.nextInt(10000): random.nextInt(2000))
+                    : orderBook.getLimitPrice());
             orderDepthStore.processOrder(orderBook);
             orderList.add(orderBook);
         }
