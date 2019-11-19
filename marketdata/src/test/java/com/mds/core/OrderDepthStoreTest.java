@@ -4,7 +4,9 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.Random;
+import java.util.concurrent.Executors;
 
 public class OrderDepthStoreTest {
 
@@ -36,6 +38,28 @@ public class OrderDepthStoreTest {
         );
 
         Assert.assertTrue(orderDepthStore.getMarketDataOrderDepth("TCS").size()==5);
+    }
+
+
+    @Test
+    public void testMarketDepthMultipleOrdersAccessedByMultipleClientsConcurrently() throws Exception {
+        OrderDepthStore orderDepthStore = new OrderDepthStore();
+        ScheduledExecutorService executorOrderDumper = Executors.newScheduledThreadPool(1);
+        try {
+            executorOrderDumper.scheduleAtFixedRate((() -> {
+                generateNewOrdersAndAddToStore(orderDepthStore, 10, "BUY", true);
+                generateNewOrdersAndAddToStore(orderDepthStore, 10, "SELL", true);
+                orderDepthStore.getMarketDataOrderDepth("TCS").stream().forEach(
+                        marketDepth -> {
+                            Assert.assertTrue(marketDepth.getBidPrice() >= marketDepth.getOfferPrice());
+                        }
+                );
+                Assert.assertEquals(5, orderDepthStore.getMarketDataOrderDepth("TCS").size());
+            }), 0, 1, TimeUnit.MILLISECONDS);
+            Thread.sleep(10000);
+        } finally {
+            executorOrderDumper.shutdown();
+        }
     }
 
     @Test
